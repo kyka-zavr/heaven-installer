@@ -133,9 +133,11 @@ select_language() {
 }
 
 # Right-pads a label out to a fixed column so values line up in the summary
-# regardless of language (Russian labels differ in length from English).
+# regardless of language (Russian labels run longer than English ones, so
+# the column width itself is picked per language, not shared).
 pad() {
     local label="$1" width=11
+    [ "$HEAVEN_LANG" = "ru" ] && width=16
     local n=$(( width - ${#label} ))
     [ "$n" -lt 1 ] && n=1
     printf '%*s' "$n" ""
