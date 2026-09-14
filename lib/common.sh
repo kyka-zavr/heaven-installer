@@ -132,17 +132,6 @@ select_language() {
     echo
 }
 
-# Right-pads a label out to a fixed column so values line up in the summary
-# regardless of language (Russian labels run longer than English ones, so
-# the column width itself is picked per language, not shared).
-pad() {
-    local label="$1" width=11
-    [ "$HEAVEN_LANG" = "ru" ] && width=16
-    local n=$(( width - ${#label} ))
-    [ "$n" -lt 1 ] && n=1
-    printf '%*s' "$n" ""
-}
-
 # --- banner + scan orchestration -------------------------------------------
 print_banner() {
     clear
@@ -184,11 +173,11 @@ run_scans() {
 print_summary() {
     echo
     echo -e "  ${BOLD}$(t summary)${RESET}"
-    echo -e "    $(t l_distro)$(pad "$(t l_distro)"): ${DISTRO_NAME:-unknown}"
-    echo -e "    $(t l_boot)$(pad "$(t l_boot)"): ${BOOT_MODE:-unknown}"
-    echo -e "    $(t l_cpu)$(pad "$(t l_cpu)"): ${CPU_MODEL:-unknown}"
-    echo -e "    $(t l_ram)$(pad "$(t l_ram)"): ${RAM_MB:-0} MB"
-    echo -e "    $(t l_disks)$(pad "$(t l_disks)"): ${DISKS:-none detected}"
-    echo -e "    $(t l_internet)$(pad "$(t l_internet)"): $([ "${NET_OK:-0}" = "1" ] && t yes || t no)"
+    echo -e "    $(t l_distro): ${DISTRO_NAME:-unknown}"
+    echo -e "    $(t l_boot): ${BOOT_MODE:-unknown}"
+    echo -e "    $(t l_cpu): ${CPU_MODEL:-unknown}"
+    echo -e "    $(t l_ram): ${RAM_MB:-0} MB"
+    echo -e "    $(t l_disks): ${DISKS:-none detected}"
+    echo -e "    $(t l_internet): $([ "${NET_OK:-0}" = "1" ] && t yes || t no)"
     echo
 }
