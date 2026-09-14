@@ -6,14 +6,15 @@
 # and hands off to that distro's real installer (archinstall, setup-alpine,
 # void-installer, ...). Meant to be run straight from a live ISO:
 #
-#   curl -fsSL https://raw.githubusercontent.com/kyka-zavr/heaven-installer/master/heaven-installer.sh | bash
+#   bash <(curl -fsSL https://raw.githubusercontent.com/kyka-zavr/heaven-installer/master/heaven-installer.sh)
+#
+# Note: use `bash <(curl ...)`, NOT `curl ... | bash`. This script needs
+# real keyboard input (a confirm prompt, then it hands off to a full TUI
+# installer) - piping into bash replaces stdin with the download stream,
+# which breaks both. Process substitution avoids that: bash reads the
+# script as a file, so its own stdin stays attached to your terminal.
 
 set -uo pipefail
-
-# When run as `curl | bash`, fd0 is the download stream, not the keyboard.
-# Reattach stdin to the real terminal so `read` prompts and the TUI
-# installer we hand off to (archinstall etc.) get real keyboard input.
-exec < /dev/tty
 
 REPO_RAW="https://raw.githubusercontent.com/kyka-zavr/heaven-installer/master"
 
