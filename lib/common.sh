@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 #
-# Heaven Installer - stage 2: system scan.
-# Meant to be run from an Arch Linux live ISO. Next stage will drive
-# archinstall to do the actual guided installation - archinstall already
-# handles mirror ranking and repo sync itself, so this script doesn't.
-
-set -uo pipefail
+# Heaven Installer - shared core library.
+# Sourced by the main entrypoint (heaven-installer.sh) - not meant to be
+# run directly. Provides: colors, the spinner-based step runner, system
+# scan functions, the banner and the scan warning/confirm prompt.
 
 CYAN='\033[1;36m'
 GREEN='\033[1;32m'
@@ -92,54 +90,52 @@ scan_network() {
     fi
 }
 
-# =============================== main flow ================================
-
-clear
-
-echo -e "${CYAN}"
-cat <<'BANNER'
+# --- banner + scan orchestration -------------------------------------------
+print_banner() {
+    clear
+    echo -e "${CYAN}"
+    cat <<'BANNER'
  _  _ ___   ___   _____ _  _   ___ _  _ ___ _____ _   _    _    ___ ___
 | || | __| /_\ \ / / __| \| | |_ _| \| / __|_   _/_\ | |  | |  | __| _ \
 | __ | _| / _ \ V /| _|| .` |  | || .` \__ \ | |/ _ \| |__| |__| _||   /
 |_||_|___/_/ \_\_/ |___|_|\_| |___|_|\_|___/ |_/_/ \_\____|____|___|_|_\
 BANNER
-echo -e "${RESET}"
-echo
-echo -e "  ${BOLD}Hello to Heaven-Installer!${RESET}"
-echo -e "  ${DIM}Simple Linux installs for everyone.${RESET}"
-echo
-
-echo -e "  ${YELLOW}Before continuing, this script will scan your system:${RESET}"
-echo -e "  ${YELLOW}distro, boot mode, CPU/RAM/disks and internet connectivity.${RESET}"
-echo -e "  ${YELLOW}Nothing leaves this machine - it's only used to guide the install.${RESET}"
-echo
-read -rp "  Press Enter to continue, or Ctrl+C to abort... "
-echo
-
-echo -e "  ${BOLD}Scanning system:${RESET}"
-run_step "Detecting distribution"        scan_distro
-[ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
-run_step "Checking boot mode"            scan_boot_mode
-[ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
-run_step "Reading hardware info"         scan_hardware
-[ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
-run_step "Checking internet connection"  scan_network
-[ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
-
-echo
-echo -e "  ${BOLD}System summary:${RESET}"
-echo -e "    Distro     : ${DISTRO_NAME:-unknown}"
-echo -e "    Boot mode  : ${BOOT_MODE:-unknown}"
-echo -e "    CPU        : ${CPU_MODEL:-unknown}"
-echo -e "    RAM        : ${RAM_MB:-0} MB"
-echo -e "    Disks      : ${DISKS:-none detected}"
-echo -e "    Internet   : $([ "${NET_OK:-0}" = "1" ] && echo yes || echo no)"
-echo
-
-if [ "${NET_OK:-0}" != "1" ]; then
-    echo -e "  ${YELLOW}No internet connection detected - archinstall needs one to proceed.${RESET}"
-    echo -e "  ${DIM}Connect to a network and re-run the script.${RESET}"
+    echo -e "${RESET}"
     echo
-fi
+    echo -e "  ${BOLD}Hello to Heaven-Installer!${RESET}"
+    echo -e "  ${DIM}Simple Linux installs for everyone.${RESET}"
+    echo
+}
 
-# TODO(next stage): drive archinstall with a simplified guided flow.
+warn_and_confirm_scan() {
+    echo -e "  ${YELLOW}Before continuing, this script will scan your system:${RESET}"
+    echo -e "  ${YELLOW}distro, boot mode, CPU/RAM/disks and internet connectivity.${RESET}"
+    echo -e "  ${YELLOW}Nothing leaves this machine - it's only used to guide the install.${RESET}"
+    echo
+    read -rp "  Press Enter to continue, or Ctrl+C to abort... "
+    echo
+}
+
+run_scans() {
+    echo -e "  ${BOLD}Scanning system:${RESET}"
+    run_step "Detecting distribution"        scan_distro
+    [ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
+    run_step "Checking boot mode"            scan_boot_mode
+    [ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
+    run_step "Reading hardware info"         scan_hardware
+    [ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
+    run_step "Checking internet connection"  scan_network
+    [ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
+}
+
+print_summary() {
+    echo
+    echo -e "  ${BOLD}System summary:${RESET}"
+    echo -e "    Distro     : ${DISTRO_NAME:-unknown}"
+    echo -e "    Boot mode  : ${BOOT_MODE:-unknown}"
+    echo -e "    CPU        : ${CPU_MODEL:-unknown}"
+    echo -e "    RAM        : ${RAM_MB:-0} MB"
+    echo -e "    Disks      : ${DISKS:-none detected}"
+    echo -e "    Internet   : $([ "${NET_OK:-0}" = "1" ] && echo yes || echo no)"
+    echo
+}
