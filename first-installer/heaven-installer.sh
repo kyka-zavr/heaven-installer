@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
-# Heaven Installer - stage 2: system scan + mirror/repo refresh.
+# Heaven Installer - stage 2: system scan.
 # Meant to be run from an Arch Linux live ISO. Next stage will drive
-# archinstall to do the actual guided installation.
+# archinstall to do the actual guided installation - archinstall already
+# handles mirror ranking and repo sync itself, so this script doesn't.
 
 set -uo pipefail
 
@@ -91,23 +92,6 @@ scan_network() {
     fi
 }
 
-# --- mirror / repo refresh (Arch-specific, skipped gracefully elsewhere) --
-step_mirrors() {
-    if ! command -v reflector >/dev/null 2>&1; then
-        echo "reflector not found, skipping"
-        return 2
-    fi
-    reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
-}
-
-step_sync_repos() {
-    if ! command -v pacman >/dev/null 2>&1; then
-        echo "pacman not found (not an Arch-based system), skipping"
-        return 2
-    fi
-    pacman -Syy
-}
-
 # =============================== main flow ================================
 
 clear
@@ -152,14 +136,10 @@ echo -e "    Disks      : ${DISKS:-none detected}"
 echo -e "    Internet   : $([ "${NET_OK:-0}" = "1" ] && echo yes || echo no)"
 echo
 
-if [ "${NET_OK:-0}" = "1" ]; then
-    echo -e "  ${BOLD}Internet detected - refreshing mirrors and repositories:${RESET}"
-    run_step "Ranking fastest mirrors (reflector)" step_mirrors
-    run_step "Syncing package databases (pacman -Syy)" step_sync_repos
-else
-    echo -e "  ${YELLOW}No internet connection detected - skipping mirror/repo refresh.${RESET}"
-    echo -e "  ${DIM}Connect to a network and re-run the script to enable this step.${RESET}"
+if [ "${NET_OK:-0}" != "1" ]; then
+    echo -e "  ${YELLOW}No internet connection detected - archinstall needs one to proceed.${RESET}"
+    echo -e "  ${DIM}Connect to a network and re-run the script.${RESET}"
+    echo
 fi
-echo
 
 # TODO(next stage): drive archinstall with a simplified guided flow.
