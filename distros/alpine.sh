@@ -8,7 +8,7 @@ install_this_distro() {
         echo -e "  ${RED}setup-alpine not found on this system.${RESET}"
         return 1
     fi
-    echo -e "  ${BOLD}Handing off to setup-alpine...${RESET}"
+    echo -e "  ${BOLD}$(t handoff) setup-alpine...${RESET}"
     echo
     exec setup-alpine
 }

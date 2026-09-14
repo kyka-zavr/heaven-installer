@@ -8,7 +8,7 @@ install_this_distro() {
         echo -e "  ${RED}archinstall not found on this system.${RESET}"
         return 1
     fi
-    echo -e "  ${BOLD}Handing off to archinstall...${RESET}"
+    echo -e "  ${BOLD}$(t handoff) archinstall...${RESET}"
     echo
     exec archinstall
 }

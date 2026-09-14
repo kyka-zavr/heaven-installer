@@ -8,7 +8,7 @@ install_this_distro() {
         echo -e "  ${RED}void-installer not found on this system.${RESET}"
         return 1
     fi
-    echo -e "  ${BOLD}Handing off to void-installer...${RESET}"
+    echo -e "  ${BOLD}$(t handoff) void-installer...${RESET}"
     echo
     exec void-installer
 }

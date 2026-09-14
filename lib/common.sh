@@ -3,7 +3,8 @@
 # Heaven Installer - shared core library.
 # Sourced by the main entrypoint (heaven-installer.sh) - not meant to be
 # run directly. Provides: colors, the spinner-based step runner, system
-# scan functions, the banner and the scan warning/confirm prompt.
+# scan functions, the banner, Stage 0 (language select) and the scan
+# warning/confirm prompt. Needs lib/i18n.sh's t() already sourced.
 
 CYAN='\033[1;36m'
 GREEN='\033[1;32m'
@@ -21,9 +22,8 @@ LAST_STEP_LOG=""
 #     file instead of the screen, so the user isn't flooded with noise. ---
 run_step() {
     local desc="$1"; shift
-    local slug
-    slug=$(echo "$desc" | tr -c 'a-zA-Z0-9' '_')
-    local log="$LOG_DIR/${slug}.log"
+    local log
+    log=$(mktemp "$LOG_DIR/step.XXXXXX.log")
     LAST_STEP_LOG="$log"
 
     "$@" >"$log" 2>&1 &
@@ -90,6 +90,57 @@ scan_network() {
     fi
 }
 
+# --- Stage 0: Cyrillic console support + language select -------------------
+# Raw Linux tty consoles often load a font with no Cyrillic glyphs, so we
+# verify (and load) a Unicode/Cyrillic-capable font *before* offering
+# Russian - if none is available we silently stay on English instead of
+# showing garbled text.
+check_cyrillic() {
+    for font in UniCyr_8x16 ter-116n ter-v16n Cyr_a8x16 cyr-sun16; do
+        if command -v setfont >/dev/null 2>&1 && setfont "$font" 2>/dev/null; then
+            echo "CYRILLIC_OK='1'"
+            echo "CYRILLIC_FONT='$font'"
+            return 0
+        fi
+    done
+    echo "CYRILLIC_OK='0'"
+}
+
+select_language() {
+    run_step "$(t cyrillic_check)" check_cyrillic
+    [ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
+
+    if [ "${CYRILLIC_OK:-0}" = "1" ]; then
+        echo
+        echo "  $(t lang_prompt)"
+        echo "    [1] English"
+        echo "    [2] Русский"
+        echo
+        local choice
+        read -rp "  > " choice
+        case "$choice" in
+            2) HEAVEN_LANG="ru" ;;
+            *) HEAVEN_LANG="en" ;;
+        esac
+    else
+        HEAVEN_LANG="en"
+        echo
+        echo -e "  ${DIM}$(t lang_fallback)${RESET}"
+    fi
+    export HEAVEN_LANG
+    echo "$HEAVEN_LANG" > /tmp/heaven-installer-lang 2>/dev/null || true
+    echo
+}
+
+# Right-pads a label out to a fixed column so values line up in the summary
+# regardless of language (Russian labels differ in length from English).
+pad() {
+    local label="$1" width=11
+    local n=$(( width - ${#label} ))
+    [ "$n" -lt 1 ] && n=1
+    printf '%*s' "$n" ""
+}
+
 # --- banner + scan orchestration -------------------------------------------
 print_banner() {
     clear
@@ -102,40 +153,40 @@ print_banner() {
 BANNER
     echo -e "${RESET}"
     echo
-    echo -e "  ${BOLD}Hello to Heaven-Installer!${RESET}"
-    echo -e "  ${DIM}Simple Linux installs for everyone.${RESET}"
+    echo -e "  ${BOLD}$(t hello)${RESET}"
+    echo -e "  ${DIM}$(t tagline)${RESET}"
     echo
 }
 
 warn_and_confirm_scan() {
-    echo -e "  ${YELLOW}Before continuing, this script will scan your system:${RESET}"
-    echo -e "  ${YELLOW}distro, boot mode, CPU/RAM/disks and internet connectivity.${RESET}"
-    echo -e "  ${YELLOW}Nothing leaves this machine - it's only used to guide the install.${RESET}"
+    echo -e "  ${YELLOW}$(t scan_warn1)${RESET}"
+    echo -e "  ${YELLOW}$(t scan_warn2)${RESET}"
+    echo -e "  ${YELLOW}$(t scan_warn3)${RESET}"
     echo
-    read -rp "  Press Enter to continue, or Ctrl+C to abort... "
+    read -rp "  $(t press_enter)" _
     echo
 }
 
 run_scans() {
-    echo -e "  ${BOLD}Scanning system:${RESET}"
-    run_step "Detecting distribution"        scan_distro
+    echo -e "  ${BOLD}$(t scanning)${RESET}"
+    run_step "$(t step_distro)" scan_distro
     [ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
-    run_step "Checking boot mode"            scan_boot_mode
+    run_step "$(t step_boot)"   scan_boot_mode
     [ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
-    run_step "Reading hardware info"         scan_hardware
+    run_step "$(t step_hw)"     scan_hardware
     [ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
-    run_step "Checking internet connection"  scan_network
+    run_step "$(t step_net)"    scan_network
     [ -r "$LAST_STEP_LOG" ] && source "$LAST_STEP_LOG"
 }
 
 print_summary() {
     echo
-    echo -e "  ${BOLD}System summary:${RESET}"
-    echo -e "    Distro     : ${DISTRO_NAME:-unknown}"
-    echo -e "    Boot mode  : ${BOOT_MODE:-unknown}"
-    echo -e "    CPU        : ${CPU_MODEL:-unknown}"
-    echo -e "    RAM        : ${RAM_MB:-0} MB"
-    echo -e "    Disks      : ${DISKS:-none detected}"
-    echo -e "    Internet   : $([ "${NET_OK:-0}" = "1" ] && echo yes || echo no)"
+    echo -e "  ${BOLD}$(t summary)${RESET}"
+    echo -e "    $(t l_distro)$(pad "$(t l_distro)"): ${DISTRO_NAME:-unknown}"
+    echo -e "    $(t l_boot)$(pad "$(t l_boot)"): ${BOOT_MODE:-unknown}"
+    echo -e "    $(t l_cpu)$(pad "$(t l_cpu)"): ${CPU_MODEL:-unknown}"
+    echo -e "    $(t l_ram)$(pad "$(t l_ram)"): ${RAM_MB:-0} MB"
+    echo -e "    $(t l_disks)$(pad "$(t l_disks)"): ${DISKS:-none detected}"
+    echo -e "    $(t l_internet)$(pad "$(t l_internet)"): $([ "${NET_OK:-0}" = "1" ] && t yes || t no)"
     echo
 }

@@ -31,15 +31,17 @@ fetch_and_source() {
     rm -f "$tmp"
 }
 
+fetch_and_source "$REPO_RAW/lib/i18n.sh" || exit 1
 fetch_and_source "$REPO_RAW/lib/common.sh" || exit 1
 
 print_banner
+select_language
 warn_and_confirm_scan
 run_scans
 print_summary
 
 if [ "${NET_OK:-0}" != "1" ]; then
-    echo -e "  ${YELLOW}No internet connection - can't fetch the installer for ${DISTRO_NAME:-this distro}.${RESET}"
+    echo -e "  ${YELLOW}$(t no_internet) ${DISTRO_NAME:-?}.${RESET}"
     exit 1
 fi
 
@@ -54,8 +56,8 @@ case "${DISTRO_ID:-unknown}" in
         fetch_and_source "$REPO_RAW/distros/void.sh" || exit 1
         ;;
     *)
-        echo -e "  ${YELLOW}${DISTRO_NAME:-This distro} isn't supported yet.${RESET}"
-        echo -e "  ${DIM}Supported right now: Arch, Alpine, Void.${RESET}"
+        echo -e "  ${YELLOW}${DISTRO_NAME:-?} $(t not_supported)${RESET}"
+        echo -e "  ${DIM}$(t supported_list)${RESET}"
         exit 1
         ;;
 esac
